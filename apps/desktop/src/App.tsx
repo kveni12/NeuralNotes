@@ -19,6 +19,7 @@ import { GalaxyView } from "./components/GalaxyView";
 import { InsightPanel } from "./components/InsightPanel";
 import { NotePreview } from "./components/NotePreview";
 import { TimelineScrubber } from "./components/TimelineScrubber";
+import { TriagePanel } from "./components/TriagePanel";
 import { fetchGalaxy, triggerSync } from "./lib/api";
 import type { GalaxyPayload, NoteNode } from "./lib/types";
 
@@ -216,7 +217,18 @@ export function App() {
             </div>
           </div>
         ) : (
-          <InsightPanel payload={payload} />
+          <>
+            <InsightPanel payload={payload} />
+            {payload && (
+              <TriagePanel
+                notes={payload.notes}
+                onPreview={(note) => {
+                  setSelected(note);
+                  setRightOpen(true);
+                }}
+              />
+            )}
+          </>
         )}
       </aside>
 
