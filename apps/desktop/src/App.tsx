@@ -1,5 +1,17 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { BrainCircuit, CalendarClock, GitBranch, Lock, Search, Sparkles, WandSparkles } from "lucide-react";
+import {
+  BrainCircuit,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  GitBranch,
+  Lock,
+  PanelLeftOpen,
+  PanelRightOpen,
+  Search,
+  Sparkles,
+  WandSparkles
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ClusterLegend } from "./components/ClusterLegend";
 import { GalaxyView } from "./components/GalaxyView";
@@ -18,6 +30,8 @@ export function App() {
   const [mode, setMode] = useState<Mode>("galaxy");
   const [time, setTime] = useState(100);
   const [syncing, setSyncing] = useState(false);
+  const [leftOpen, setLeftOpen] = useState(false);
+  const [rightOpen, setRightOpen] = useState(false);
 
   useEffect(() => {
     fetchGalaxy().then(setPayload);
@@ -128,8 +142,32 @@ export function App() {
         )}
       </section>
 
-      <aside className="pointer-events-none absolute bottom-24 left-4 top-[88px] z-20 flex w-[min(23vw,272px)] min-w-[230px] flex-col gap-2">
+      {!leftOpen && (
+        <button className="panel-peek left-4 top-[98px]" onClick={() => setLeftOpen(true)} title="Show search and insights">
+          <PanelLeftOpen size={15} />
+          <span>Search</span>
+        </button>
+      )}
+
+      {!rightOpen && (
+        <button className="panel-peek right-4 top-[98px]" onClick={() => setRightOpen(true)} title="Show status and note preview">
+          <span>Status</span>
+          <PanelRightOpen size={15} />
+        </button>
+      )}
+
+      <aside
+        className={`pointer-events-none absolute bottom-24 left-4 top-[88px] z-20 flex w-[min(23vw,272px)] min-w-[230px] flex-col gap-2 transition-all duration-300 ${
+          leftOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-[calc(100%+24px)] opacity-0"
+        }`}
+      >
         <div className="pointer-events-auto glass-panel compact-panel p-2.5">
+          <div className="panel-row mb-2">
+            <span>Explore</span>
+            <button className="mini-icon-button" onClick={() => setLeftOpen(false)} title="Hide left panel">
+              <ChevronLeft size={15} />
+            </button>
+          </div>
           <div className="flex items-center gap-2 rounded-2xl bg-white/[0.07] px-3 py-2">
             <Search size={16} className="text-white/50" />
             <input
@@ -151,17 +189,26 @@ export function App() {
         <InsightPanel payload={payload} />
       </aside>
 
-      <aside className="pointer-events-none absolute bottom-24 right-4 top-[88px] z-20 flex w-[min(24vw,304px)] min-w-[250px] flex-col gap-2">
+      <aside
+        className={`pointer-events-none absolute bottom-24 right-4 top-[88px] z-20 flex w-[min(24vw,304px)] min-w-[250px] flex-col gap-2 transition-all duration-300 ${
+          rightOpen ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-[calc(100%+24px)] opacity-0"
+        }`}
+      >
         <div className="pointer-events-auto glass-panel compact-panel p-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Lock size={15} />
               On-device index
             </div>
-            <button onClick={onSync} className="primary-button" disabled={syncing}>
-              <WandSparkles size={15} />
-              {syncing ? "Syncing" : "Sync"}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button onClick={onSync} className="primary-button" disabled={syncing}>
+                <WandSparkles size={15} />
+                {syncing ? "Syncing" : "Sync"}
+              </button>
+              <button className="mini-icon-button" onClick={() => setRightOpen(false)} title="Hide right panel">
+                <ChevronRight size={15} />
+              </button>
+            </div>
           </div>
           <div className="mt-2 text-[11px] leading-4 text-white/48">
             {payload ? `${filteredPayload?.notes.length ?? payload.notes.length} visible • ${payload.edges.length} links` : "Loading local cache"}
