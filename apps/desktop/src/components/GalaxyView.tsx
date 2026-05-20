@@ -1,6 +1,5 @@
 import * as d3 from "d3";
-import { motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { GalaxyPayload, NoteNode } from "../lib/types";
 
 type Props = {
@@ -16,8 +15,6 @@ type SimNode = NoteNode & { sx: number; sy: number };
 
 export function GalaxyView({ payload, mode, searchQuery, selectedId, onSelect }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [hovered, setHovered] = useState<NoteNode | null>(null);
-  const [viewScale, setViewScale] = useState(1);
 
   const nodes = useMemo<SimNode[]>(() => payload.notes.map((note) => ({ ...note, sx: note.x, sy: note.y })), [payload.notes]);
 
@@ -40,13 +37,13 @@ export function GalaxyView({ payload, mode, searchQuery, selectedId, onSelect }:
       .domain(payload.clusters.map((cluster) => cluster.id))
       .range(clusterColors);
 
-    const edgeData = mode === "graph" ? payload.edges.filter((edge) => edge.similarity > 0.72).slice(0, 900) : [];
+    const edgeData = mode === "graph" ? payload.edges.slice(0, 900) : [];
     const edges = edgeLayer
       .selectAll("line")
       .data(edgeData)
       .join("line")
       .attr("stroke", "rgba(180,220,255,0.16)")
-      .attr("stroke-width", (edge) => Math.max(0.4, (edge.similarity - 0.7) * 5));
+      .attr("stroke-width", (edge) => Math.max(0.45, edge.similarity * 3.2));
 
     const halos = haloLayer
       .selectAll("circle")
@@ -66,7 +63,7 @@ export function GalaxyView({ payload, mode, searchQuery, selectedId, onSelect }:
       .attr("font-size", 13)
       .attr("font-weight", 600)
       .attr("text-anchor", "middle")
-      .attr("opacity", viewScale > 0.75 ? 1 : 0);
+      .attr("opacity", 1);
 
     const node = nodeLayer
       .selectAll("circle")
@@ -78,10 +75,10 @@ export function GalaxyView({ payload, mode, searchQuery, selectedId, onSelect }:
       .attr("stroke-width", (note) => (note.id === selectedId ? 2 : 0.6))
       .attr("opacity", (note) => (searchQuery && note.score < 0.55 ? 0.24 : 0.92))
       .style("filter", "drop-shadow(0 0 8px currentColor)")
-      .style("cursor", "pointer")
-      .on("mouseenter", (_, note) => setHovered(note))
-      .on("mouseleave", () => setHovered(null))
-      .on("click", (_, note) => onSelect(note));
+      .style("cursor", "pointer");
+
+    node.append("title").text((note) => `${note.title}\n${note.clusterLabel}`);
+    node.on("click", (_, note) => onSelect(note));
 
     const linksById = new Map(nodes.map((note) => [note.id, note]));
     const simulation = d3
@@ -112,7 +109,6 @@ export function GalaxyView({ payload, mode, searchQuery, selectedId, onSelect }:
       .scaleExtent([0.25, 7])
       .on("zoom", (event) => {
         root.attr("transform", event.transform.toString());
-        setViewScale(event.transform.k);
         labels.attr("opacity", event.transform.k > 0.72 ? 1 : 0);
         node.attr("r", (note) => Math.max(1.8, note.radius / Math.sqrt(event.transform.k)));
       });
@@ -123,7 +119,7 @@ export function GalaxyView({ payload, mode, searchQuery, selectedId, onSelect }:
       simulation.stop();
       svg.on(".zoom", null);
     };
-  }, [mode, nodes, onSelect, payload.clusters, payload.edges, searchQuery, selectedId, viewScale]);
+  }, [mode, nodes, onSelect, payload.clusters, payload.edges, searchQuery, selectedId]);
 
   return (
     <div className="relative h-full w-full">
@@ -134,21 +130,6 @@ export function GalaxyView({ payload, mode, searchQuery, selectedId, onSelect }:
           </filter>
         </defs>
       </svg>
-
-      {hovered && (
-        <motion.div
-          initial={{ opacity: 0, y: 8, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="pointer-events-none absolute left-1/2 top-24 z-30 w-[320px] -translate-x-1/2 rounded-3xl border border-white/12 bg-black/55 p-4 shadow-panel backdrop-blur-2xl"
-        >
-          <div className="mb-1 text-sm font-semibold">{hovered.title}</div>
-          <p className="line-clamp-3 text-xs leading-5 text-white/62">{hovered.body}</p>
-          <div className="mt-3 flex items-center justify-between text-[11px] text-white/42">
-            <span>{hovered.folder}</span>
-            <span>{hovered.clusterLabel}</span>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }

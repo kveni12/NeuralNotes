@@ -4,9 +4,10 @@ import { Rewind, StepForward } from "lucide-react";
 type Props = {
   value: number;
   onChange: (value: number) => void;
+  label: string;
 };
 
-export function TimelineScrubber({ value, onChange }: Props) {
+export function TimelineScrubber({ value, onChange, label }: Props) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -15,7 +16,7 @@ export function TimelineScrubber({ value, onChange }: Props) {
     >
       <div className="mb-3 flex items-center justify-between text-sm font-medium">
         <span>Time evolution</span>
-        <span className="text-xs text-white/45">{value}%</span>
+        <span className="text-xs text-white/45">{label}</span>
       </div>
       <div className="flex items-center gap-3">
         <button className="icon-button" title="Rewind timeline" onClick={() => onChange(Math.max(0, value - 10))}>

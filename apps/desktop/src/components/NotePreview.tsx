@@ -14,7 +14,7 @@ export function NotePreview({ note, onClose }: Props) {
       initial={{ opacity: 0, x: 14 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 14 }}
-      className="pointer-events-auto glass-panel max-h-[52vh] overflow-hidden p-4"
+      className="pointer-events-auto glass-panel max-h-[44vh] overflow-hidden p-4"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -34,7 +34,7 @@ export function NotePreview({ note, onClose }: Props) {
           <X size={15} />
         </button>
       </div>
-      <p className="mt-4 max-h-[28vh] overflow-auto pr-1 text-sm leading-6 text-white/68">{note.body}</p>
+      <p className="mt-4 max-h-[20vh] overflow-auto pr-1 text-sm leading-6 text-white/68">{note.body}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {note.tags.map((tag) => (
           <span key={tag} className="filter-chip">

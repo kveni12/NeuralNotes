@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 import subprocess
 from datetime import datetime, timezone
@@ -147,5 +148,20 @@ def _coerce_date(value: object) -> str:
     if isinstance(value, datetime):
         return value.astimezone(timezone.utc).isoformat()
     if isinstance(value, str) and value.strip():
-        return value
+        cleaned = re.sub(r"[\u202f\u00a0]", " ", value.replace(" at ", " "))
+        for pattern in (
+            "%A, %B %d, %Y %I:%M:%S %p",
+            "%A, %B %d, %Y %I:%M %p",
+            "%B %d, %Y %I:%M:%S %p",
+            "%B %d, %Y %I:%M %p",
+        ):
+            try:
+                return datetime.strptime(cleaned, pattern).replace(tzinfo=timezone.utc).isoformat()
+            except ValueError:
+                pass
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc).isoformat()
+        except ValueError:
+            return value
     return datetime.now(timezone.utc).isoformat()

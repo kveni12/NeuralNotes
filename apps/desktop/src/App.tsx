@@ -27,14 +27,30 @@ export function App() {
     return [...new Set(payload.notes.map((note) => note.folder))].sort();
   }, [payload]);
 
+  const timeWindow = useMemo(() => {
+    const timestamps = payload?.notes
+      .map((note) => parseNoteDate(note.updatedAt))
+      .filter((timestamp): timestamp is number => timestamp !== null) ?? [];
+    if (!timestamps.length) return null;
+    return {
+      start: Math.min(...timestamps),
+      end: Math.max(...timestamps)
+    };
+  }, [payload]);
+
   const filteredPayload = useMemo(() => {
     if (!payload) return null;
     const normalized = query.trim().toLowerCase();
+    const cutoff =
+      mode === "time" && timeWindow
+        ? timeWindow.start + ((timeWindow.end - timeWindow.start) * time) / 100
+        : Number.POSITIVE_INFINITY;
     const notes = payload.notes.filter((note) => {
       const matchesQuery =
         !normalized ||
         `${note.title} ${note.body} ${note.tags.join(" ")} ${note.folder}`.toLowerCase().includes(normalized);
-      const matchesTime = mode !== "time" || new Date(note.updatedAt).getTime() <= Date.now() - (100 - time) * 12 * 86400_000;
+      const updated = parseNoteDate(note.updatedAt);
+      const matchesTime = mode !== "time" || !updated || updated <= cutoff;
       return matchesQuery && matchesTime;
     });
     const ids = new Set(notes.map((note) => note.id));
@@ -43,7 +59,7 @@ export function App() {
       notes,
       edges: payload.edges.filter((edge) => ids.has(edge.source) && ids.has(edge.target))
     };
-  }, [mode, payload, query, time]);
+  }, [mode, payload, query, time, timeWindow]);
 
   async function onSync() {
     setSyncing(true);
@@ -111,7 +127,7 @@ export function App() {
         )}
       </section>
 
-      <aside className="pointer-events-none absolute bottom-5 left-5 top-24 z-20 flex w-[330px] flex-col gap-3">
+      <aside className="pointer-events-none absolute bottom-5 left-5 top-24 z-20 flex w-[292px] flex-col gap-3">
         <div className="pointer-events-auto glass-panel p-3">
           <div className="flex items-center gap-2 rounded-2xl bg-white/[0.07] px-3 py-2">
             <Search size={16} className="text-white/50" />
@@ -134,7 +150,7 @@ export function App() {
         <InsightPanel payload={payload} />
       </aside>
 
-      <aside className="pointer-events-none absolute bottom-5 right-5 top-24 z-20 flex w-[360px] flex-col gap-3">
+      <aside className="pointer-events-none absolute bottom-5 right-5 top-24 z-20 flex w-[318px] flex-col gap-3">
         <div className="pointer-events-auto glass-panel p-3">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-medium">
@@ -151,7 +167,13 @@ export function App() {
           </p>
         </div>
 
-        {mode === "time" && <TimelineScrubber value={time} onChange={setTime} />}
+        {mode === "time" && (
+          <TimelineScrubber
+            value={time}
+            onChange={setTime}
+            label={timeWindow ? new Date(timeWindow.start + ((timeWindow.end - timeWindow.start) * time) / 100).toLocaleDateString() : "No dates"}
+          />
+        )}
 
         <AnimatePresence mode="popLayout">
           {selected && <NotePreview note={selected} onClose={() => setSelected(null)} />}
@@ -159,4 +181,12 @@ export function App() {
       </aside>
     </main>
   );
+}
+
+function parseNoteDate(value: string): number | null {
+  const direct = Date.parse(value);
+  if (Number.isFinite(direct)) return direct;
+  const cleaned = value.replace(/\s+at\s+/i, " ").replace(/[\u202f\u00a0]/g, " ");
+  const parsed = Date.parse(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
 }
