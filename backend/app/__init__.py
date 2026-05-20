@@ -1,0 +1,1 @@
+"""NeuralNotes local indexing service."""

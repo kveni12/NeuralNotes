@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+target/
+.idea/
+.vscode/
