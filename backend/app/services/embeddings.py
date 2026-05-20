@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-
-import numpy as np
-from sklearn.feature_extraction.text import HashingVectorizer
-from sklearn.preprocessing import normalize
+import math
 
 from app.models.note import RawNote
 
@@ -21,7 +18,7 @@ def content_hash(note: RawNote) -> str:
     return digest.hexdigest()
 
 
-def embed_notes(notes: list[RawNote]) -> tuple[dict[str, np.ndarray], str]:
+def embed_notes(notes: list[RawNote]) -> tuple[dict[str, list[float]], str]:
     corpus = [f"{note.title}\n{note.body}\n{' '.join(note.tags)}" for note in notes]
     if not corpus:
         return {}, MODEL_NAME
@@ -31,8 +28,17 @@ def embed_notes(notes: list[RawNote]) -> tuple[dict[str, np.ndarray], str]:
 
         model = SentenceTransformer(MODEL_NAME)
         matrix = model.encode(corpus, normalize_embeddings=True, show_progress_bar=False)
-        return {note.external_id: matrix[index].astype(np.float32) for index, note in enumerate(notes)}, MODEL_NAME
+        return {note.external_id: matrix[index].tolist() for index, note in enumerate(notes)}, MODEL_NAME
     except Exception:
-        vectorizer = HashingVectorizer(n_features=384, alternate_sign=False, norm=None)
-        matrix = normalize(vectorizer.transform(corpus)).toarray().astype(np.float32)
-        return {note.external_id: matrix[index] for index, note in enumerate(notes)}, "local-hashing-fallback"
+        return {note.external_id: _hash_embed(text) for note, text in zip(notes, corpus)}, "stdlib-hashing-fallback"
+
+
+def _hash_embed(text: str, dimensions: int = 192) -> list[float]:
+    vector = [0.0] * dimensions
+    for token in text.lower().split():
+        digest = hashlib.blake2b(token.encode("utf-8"), digest_size=6).digest()
+        index = int.from_bytes(digest[:4], "big") % dimensions
+        sign = 1.0 if digest[4] % 2 == 0 else -1.0
+        vector[index] += sign
+    norm = math.sqrt(sum(value * value for value in vector)) or 1.0
+    return [value / norm for value in vector]

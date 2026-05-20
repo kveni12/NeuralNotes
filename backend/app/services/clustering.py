@@ -1,23 +1,20 @@
 from __future__ import annotations
 
+import math
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-
-import numpy as np
-from sklearn.cluster import MiniBatchKMeans
-from sklearn.metrics.pairwise import cosine_similarity
 
 from app.models.note import IndexedNote, RawNote
 
 
-def layout_notes(notes: list[RawNote], vectors: dict[str, np.ndarray]) -> tuple[list[IndexedNote], list[tuple[str, str, float]]]:
+def layout_notes(notes: list[RawNote], vectors: dict[str, list[float]]) -> tuple[list[IndexedNote], list[tuple[str, str, float]]]:
     if not notes:
         return [], []
 
     ids = [note.external_id for note in notes if note.external_id in vectors]
-    matrix = np.array([vectors[note_id] for note_id in ids], dtype=np.float32)
-    positions = _project(matrix)
-    labels = _cluster(matrix)
+    matrix = [vectors[note_id] for note_id in ids]
+    labels = _cluster(notes)
+    positions = _project(ids, labels)
     note_by_id = {note.external_id: note for note in notes}
     cluster_names = _cluster_names(ids, labels, note_by_id)
     scores = _centrality_scores(matrix)
@@ -45,37 +42,37 @@ def layout_notes(notes: list[RawNote], vectors: dict[str, np.ndarray]) -> tuple[
     return indexed, edges
 
 
-def _project(matrix: np.ndarray) -> np.ndarray:
-    if len(matrix) < 3:
-        return np.zeros((len(matrix), 2), dtype=np.float32)
-    try:
-        import umap
-
-        reducer = umap.UMAP(n_components=2, n_neighbors=min(18, len(matrix) - 1), min_dist=0.08, random_state=42)
-        projected = reducer.fit_transform(matrix)
-    except Exception:
-        from sklearn.decomposition import PCA
-
-        projected = PCA(n_components=2, random_state=42).fit_transform(matrix)
-    return _normalize_positions(projected)
+def _cluster(notes: list[RawNote]) -> list[int]:
+    groups: dict[str, int] = {}
+    labels = []
+    for note in notes:
+        key = note.folder or (note.tags[0] if note.tags else "Notes")
+        if key not in groups:
+            groups[key] = len(groups)
+        labels.append(groups[key])
+    return labels
 
 
-def _cluster(matrix: np.ndarray) -> np.ndarray:
-    if len(matrix) < 6:
-        return np.zeros(len(matrix), dtype=int)
-    try:
-        import hdbscan
+def _project(ids: list[str], labels: list[int]) -> list[tuple[float, float]]:
+    counts = Counter(labels)
+    offsets = defaultdict(int)
+    cluster_count = max(len(counts), 1)
+    positions = []
+    for note_id, label in zip(ids, labels):
+        cluster_angle = (2 * math.pi * label) / cluster_count
+        cluster_radius = 0.58
+        local_index = offsets[label]
+        offsets[label] += 1
+        local_angle = (2 * math.pi * local_index) / max(counts[label], 1)
+        local_radius = 0.07 + 0.035 * math.sqrt(local_index + 1)
+        stable_jitter = (sum(ord(char) for char in note_id) % 17) / 500
+        x = math.cos(cluster_angle) * cluster_radius + math.cos(local_angle) * (local_radius + stable_jitter)
+        y = math.sin(cluster_angle) * cluster_radius + math.sin(local_angle) * (local_radius + stable_jitter)
+        positions.append((max(-1, min(1, x)), max(-1, min(1, y))))
+    return positions
 
-        labels = hdbscan.HDBSCAN(min_cluster_size=max(4, min(16, len(matrix) // 12))).fit_predict(matrix)
-        if len(set(labels)) > 1:
-            return labels
-    except Exception:
-        pass
-    clusters = max(2, min(9, int(np.sqrt(len(matrix)))))
-    return MiniBatchKMeans(n_clusters=clusters, random_state=42, n_init="auto").fit_predict(matrix)
 
-
-def _cluster_names(ids: list[str], labels: np.ndarray, notes: dict[str, RawNote]) -> dict[int, str]:
+def _cluster_names(ids: list[str], labels: list[int], notes: dict[str, RawNote]) -> dict[int, str]:
     stop = {"the", "and", "for", "with", "that", "this", "from", "into", "about", "notes", "note"}
     words_by_cluster: dict[int, Counter] = defaultdict(Counter)
     for note_id, label in zip(ids, labels):
@@ -88,36 +85,34 @@ def _cluster_names(ids: list[str], labels: np.ndarray, notes: dict[str, RawNote]
     }
 
 
-def _centrality_scores(matrix: np.ndarray) -> np.ndarray:
+def _centrality_scores(matrix: list[list[float]]) -> list[float]:
     if len(matrix) == 1:
-        return np.array([1.0])
-    similarity = cosine_similarity(matrix)
-    return similarity.mean(axis=1)
+        return [1.0]
+    scores = []
+    for row in matrix:
+        scores.append(sum(_cosine(row, other) for other in matrix) / len(matrix))
+    return scores
 
 
-def _build_edges(ids: list[str], matrix: np.ndarray) -> list[tuple[str, str, float]]:
-    if len(ids) < 2:
-        return []
-    similarity = cosine_similarity(matrix)
+def _build_edges(ids: list[str], matrix: list[list[float]]) -> list[tuple[str, str, float]]:
     edges: list[tuple[str, str, float]] = []
     for row in range(len(ids)):
-        candidates = np.argsort(similarity[row])[-8:-1]
-        for col in candidates:
-            if row >= col:
+        scored = []
+        for col in range(len(ids)):
+            if row == col:
                 continue
-            score = float(similarity[row][col])
-            if score >= 0.55:
+            scored.append((col, _cosine(matrix[row], matrix[col])))
+        for col, score in sorted(scored, key=lambda item: item[1], reverse=True)[:6]:
+            if row < col and score >= 0.15:
                 edges.append((ids[row], ids[col], score))
     edges.sort(key=lambda edge: edge[2], reverse=True)
     return edges[:5000]
 
 
-def _normalize_positions(points: np.ndarray) -> np.ndarray:
-    minimum = points.min(axis=0)
-    maximum = points.max(axis=0)
-    span = np.maximum(maximum - minimum, 1e-6)
-    normalized = ((points - minimum) / span) * 2 - 1
-    return normalized.astype(np.float32)
+def _cosine(left: list[float], right: list[float]) -> float:
+    if not left or not right:
+        return 0.0
+    return sum(a * b for a, b in zip(left, right))
 
 
 def _parse_date(value: str) -> datetime:

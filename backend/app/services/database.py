@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from pathlib import Path
 from typing import Iterable
 
-import numpy as np
-
 from app.models.note import IndexedNote
 
-APP_DIR = Path.home() / "Library" / "Application Support" / "NeuralNotes"
-DB_PATH = APP_DIR / "index.sqlite"
+DEFAULT_APP_DIR = Path.home() / "Library" / "Application Support" / "NeuralNotes"
+DB_PATH = Path(os.environ.get("NEURALNOTES_DB", DEFAULT_APP_DIR / "index.sqlite")).expanduser()
+APP_DIR = DB_PATH.parent
 
 
 def connect() -> sqlite3.Connection:
@@ -117,7 +117,7 @@ def upsert_notes(notes: Iterable[IndexedNote], content_hashes: dict[str, str]) -
         )
 
 
-def save_embeddings(vectors: dict[str, np.ndarray], model_name: str) -> None:
+def save_embeddings(vectors: dict[str, list[float]], model_name: str) -> None:
     with connect() as db:
         db.executemany(
             """
@@ -128,7 +128,7 @@ def save_embeddings(vectors: dict[str, np.ndarray], model_name: str) -> None:
               model=excluded.model,
               updated_at=excluded.updated_at
             """,
-            [(note_id, json.dumps(vector.tolist()), model_name) for note_id, vector in vectors.items()],
+            [(note_id, json.dumps(list(vector)), model_name) for note_id, vector in vectors.items()],
         )
 
 
@@ -146,13 +146,13 @@ def load_note_rows() -> list[sqlite3.Row]:
         return list(db.execute("select * from notes order by updated_at desc"))
 
 
-def load_embeddings() -> tuple[list[str], np.ndarray]:
+def load_embeddings() -> tuple[list[str], list[list[float]]]:
     with connect() as db:
         rows = list(db.execute("select external_id, vector_json from embeddings"))
     if not rows:
-        return [], np.zeros((0, 0))
+        return [], []
     ids = [row["external_id"] for row in rows]
-    matrix = np.array([json.loads(row["vector_json"]) for row in rows], dtype=np.float32)
+    matrix = [json.loads(row["vector_json"]) for row in rows]
     return ids, matrix
 
 
