@@ -10,6 +10,7 @@ import {
   PanelRightOpen,
   Search,
   Sparkles,
+  StickyNote,
   WandSparkles
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -36,6 +37,10 @@ export function App() {
   useEffect(() => {
     fetchGalaxy().then(setPayload);
   }, []);
+
+  useEffect(() => {
+    if (query.trim()) setLeftOpen(true);
+  }, [query]);
 
   const folders = useMemo(() => {
     if (!payload) return [];
@@ -186,7 +191,33 @@ export function App() {
           </div>
         </div>
 
-        <InsightPanel payload={payload} />
+        {query.trim() && filteredPayload ? (
+          <div className="pointer-events-auto glass-panel compact-panel note-results-panel">
+            <div className="panel-row mb-2">
+              <span>{filteredPayload.notes.length} matches</span>
+              <StickyNote size={14} />
+            </div>
+            <div className="note-results-list">
+              {filteredPayload.notes.slice(0, 60).map((note) => (
+                <button
+                  key={note.id}
+                  className={`note-result ${selected?.id === note.id ? "is-selected" : ""}`}
+                  onClick={() => {
+                    setSelected(note);
+                    setRightOpen(true);
+                  }}
+                >
+                  <span className="note-result-title">{note.title}</span>
+                  <span className="note-result-meta">
+                    {note.clusterLabel} • {formatNoteDate(note.updatedAt)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <InsightPanel payload={payload} />
+        )}
       </aside>
 
       <aside
@@ -241,4 +272,10 @@ function parseNoteDate(value: string): number | null {
   const cleaned = value.replace(/\s+at\s+/i, " ").replace(/[\u202f\u00a0]/g, " ");
   const parsed = Date.parse(cleaned);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatNoteDate(value: string) {
+  const parsed = parseNoteDate(value);
+  if (!parsed) return "undated";
+  return new Date(parsed).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }

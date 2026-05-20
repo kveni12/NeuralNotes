@@ -120,6 +120,58 @@ input {
   padding: 9px 10px;
 }
 
+.note-results-panel {
+  min-height: 0;
+  padding: 10px;
+}
+
+.note-results-list {
+  display: flex;
+  max-height: min(54vh, 520px);
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.note-result {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+  padding: 9px 10px;
+  text-align: left;
+  transition: 160ms ease;
+}
+
+.note-result:hover,
+.note-result.is-selected {
+  border-color: rgba(125, 227, 255, 0.32);
+  background: rgba(125, 227, 255, 0.105);
+}
+
+.note-result-title {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-result-meta {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 10.5px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .primary-button,
 .icon-button {
   display: inline-flex;
