@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Activity, Orbit, TrendingUp, Waves } from "lucide-react";
+import { Activity, Orbit, TrendingUp } from "lucide-react";
 import type { GalaxyPayload } from "../lib/types";
 
 type Props = {
@@ -8,7 +8,7 @@ type Props = {
 
 export function InsightPanel({ payload }: Props) {
   const largest = payload ? [...payload.clusters].sort((a, b) => b.count - a.count)[0] : null;
-  const stale = payload?.notes.filter((note) => note.forgottenMonths >= 6).slice(0, 2) ?? [];
+  const stale = payload?.notes.filter((note) => note.forgottenMonths >= 6).slice(0, 1) ?? [];
 
   const insights = [
     {
@@ -24,7 +24,7 @@ export function InsightPanel({ payload }: Props) {
       tint: "text-neural-cyan"
     },
     {
-      icon: Waves,
+      icon: Orbit,
       label: "Forgotten memory",
       value: stale[0] ? `${stale[0].title} surfaced` : "None yet",
       tint: "text-neural-amber"
@@ -41,12 +41,12 @@ export function InsightPanel({ payload }: Props) {
     <motion.div
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
-      className="pointer-events-auto glass-panel p-3"
+      className="pointer-events-auto glass-panel compact-panel p-3"
     >
       <div className="mb-3 text-sm font-medium">AI insights</div>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {insights.map(({ icon: Icon, label, value, tint }) => (
-          <div key={label} className="rounded-2xl bg-white/[0.055] p-3">
+          <div key={label} className="insight-row">
             <div className="flex items-center gap-2 text-xs text-white/45">
               <Icon size={14} className={tint} />
               {label}

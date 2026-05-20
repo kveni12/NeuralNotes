@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { useEffect, useMemo, useRef } from "react";
+import { clusterColors } from "../lib/colors";
 import type { GalaxyPayload, NoteNode } from "../lib/types";
 
 type Props = {
@@ -10,7 +11,6 @@ type Props = {
   onSelect: (note: NoteNode) => void;
 };
 
-const clusterColors = ["#7de3ff", "#8affc1", "#ffd47a", "#ff7aaa", "#b79cff", "#9ae6ff"];
 type SimNode = NoteNode & { sx: number; sy: number };
 
 export function GalaxyView({ payload, mode, searchQuery, selectedId, onSelect }: Props) {

@@ -25,7 +25,7 @@ input {
 
 .glass-panel {
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
+  border-radius: 18px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.045)),
     rgba(8, 10, 20, 0.66);
@@ -33,14 +33,35 @@ input {
   backdrop-filter: blur(28px) saturate(1.35);
 }
 
+.top-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 13px;
+}
+
+.mode-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+}
+
+.compact-panel {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.038)),
+    rgba(8, 10, 20, 0.58);
+}
+
 .segmented-button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 34px;
+  min-height: 32px;
   border-radius: 17px;
-  padding: 0 12px;
+  padding: 0 10px;
   color: rgba(255, 255, 255, 0.58);
+  font-size: 13px;
   transition: 180ms ease;
 }
 
@@ -53,10 +74,16 @@ input {
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.065);
-  padding: 5px 9px;
+  padding: 4px 8px;
   color: rgba(255, 255, 255, 0.62);
   font-size: 11px;
   line-height: 1;
+}
+
+.insight-row {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 9px 10px;
 }
 
 .primary-button,
@@ -72,10 +99,10 @@ input {
 
 .primary-button {
   gap: 7px;
-  min-height: 30px;
+  min-height: 28px;
   border-radius: 15px;
-  padding: 0 10px;
-  font-size: 12px;
+  padding: 0 9px;
+  font-size: 11px;
 }
 
 .icon-button {
@@ -102,6 +129,64 @@ input {
     110px 110px,
     170px 170px;
   opacity: 0.28;
+}
+
+.legend-panel {
+  padding: 9px 10px 10px;
+}
+
+.legend-title {
+  padding: 0 3px 7px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.legend-scroll {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.legend-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 0 0 auto;
+  max-width: 190px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 6px 8px;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.legend-label {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend-count {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 11px;
 }
 
 .line-clamp-3 {
